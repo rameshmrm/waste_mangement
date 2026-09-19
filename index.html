@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Waste Management System | Smart City IoT Dashboard</title>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Custom Style -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-icon">
+        <i class="fa-solid fa-recycle"></i>
+      </div>
+      <div class="brand-title">
+        ECO-SMART
+        <span>Waste System</span>
+      </div>
+    </div>
+    
+    <ul class="sidebar-menu">
+      <li class="menu-category" data-i18n="menu_main">Main Menu</li>
+      <li class="nav-item">
+        <a class="nav-link active" data-view="dashboard-view">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span data-i18n="nav_dashboard">Dashboard</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-view="points-view">
+          <i class="fa-solid fa-trash-can"></i>
+          <span data-i18n="nav_points">Collection Points</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-view="map-view">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span data-i18n="nav_map">Interactive Map</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-view="schedule-view">
+          <i class="fa-solid fa-truck-pickup"></i>
+          <span data-i18n="nav_schedule">Collection Schedule</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-view="analytics-view">
+          <i class="fa-solid fa-chart-line"></i>
+          <span data-i18n="nav_analytics">Analytics & Reports</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-view="alerts-view">
+          <i class="fa-solid fa-bell"></i>
+          <span data-i18n="nav_alerts">Alerts Center</span>
+          <span class="badge badge-danger" id="sidebar-alert-badge">0</span>
+        </a>
+      </li>
+      
+      <li class="menu-category" style="margin-top: 15px;" data-i18n="menu_management">Management</li>
+      <li class="nav-item">
+        <a class="nav-link" id="open-add-modal-nav">
+          <i class="fa-solid fa-circle-plus"></i>
+          <span data-i18n="nav_add_point">Add Collection Point</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-view="settings-view">
+          <i class="fa-solid fa-sliders"></i>
+          <span data-i18n="nav_settings">System Settings</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="avatar" id="user-avatar">AD</div>
+        <div class="user-info">
+          <div class="user-name" id="user-display-name">Admin Officer</div>
+          <div class="user-role" id="user-display-role">Municipal Authority</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Wrapper -->
+  <main class="main-wrapper">
+    
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="mobile-toggle" id="mobile-toggle">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <h1 class="page-header-title" id="page-title">Dashboard Overview</h1>
+      </div>
+
+      <div class="header-actions">
+        <!-- Language Switcher -->
+        <div class="language-selector" title="Change Language / மொழி / भाषा / Idioma">
+          <i class="fa-solid fa-globe" style="color: var(--primary);"></i>
+          <select id="lang-select" class="lang-dropdown">
+            <option value="en">English (EN)</option>
+            <option value="ta">தமிழ் (TA)</option>
+            <option value="hi">हिंदी (HI)</option>
+            <option value="es">Español (ES)</option>
+          </select>
+        </div>
+
+        <!-- Live Sensor Pulse -->
+        <div class="live-status">
+          <div class="pulse-dot"></div>
+          <span data-i18n="live_status">IoT Sensors Live</span>
+        </div>
+
+        <!-- Role Switcher -->
+        <div class="role-switcher">
+          <button class="role-btn active" data-role="admin" data-i18n="role_admin">Admin</button>
+          <button class="role-btn" data-role="staff" data-i18n="role_staff">Staff</button>
+          <button class="role-btn" data-role="driver" data-i18n="role_driver">Driver</button>
+        </div>
+
+        <!-- Demo Action Controls -->
+        <button class="btn btn-outline btn-sm" id="btn-refresh-data" title="Refresh Live Sensor Telemetry">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span data-i18n="btn_refresh">Refresh</span>
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-sim-tick" title="Simulate Fill Increment">
+          <i class="fa-solid fa-bolt"></i>
+          <span data-i18n="btn_sim_telemetry">Simulate Telemetry</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Body Views -->
+    <div class="content-body">
+
+      <!-- ================= 1. DASHBOARD VIEW ================= -->
+      <section id="dashboard-view" class="view-page active">
+        
+        <!-- How It Works Section Banner -->
+        <div class="how-it-works-card">
+          <div class="banner-header">
+            <div>
+              <h2><i class="fa-solid fa-network-wired" style="color: #34d399;"></i> <span data-i18n="how_it_works_title">How It Works — Smart City Waste Architecture</span></h2>
+              <p class="banner-subtitle" data-i18n="how_it_works_sub">Real-time IoT fill monitoring reduces fuel consumption by up to 35% and prevents overflow bin emergencies.</p>
+            </div>
+          </div>
+          
+          <div class="steps-grid">
+            <div class="step-box">
+              <div class="step-number">1</div>
+              <div class="step-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+              <div class="step-title" data-i18n="step1_title">📡 Collect Waste Data</div>
+              <div class="step-desc" data-i18n="step1_desc">Ultrasonic IoT sensors emit bin fill level telemetry every 5 minutes directly to central servers.</div>
+            </div>
+
+            <div class="step-box">
+              <div class="step-number">2</div>
+              <div class="step-icon"><i class="fa-solid fa-microchip"></i></div>
+              <div class="step-title" data-i18n="step2_title">📊 Analyze Fill Levels</div>
+              <div class="step-desc" data-i18n="step2_desc">Algorithmic engine computes bin capacities, priority weightings, and overflow time predictions.</div>
+            </div>
+
+            <div class="step-box">
+              <div class="step-number">3</div>
+              <div class="step-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="step-title" data-i18n="step3_title">🚨 Identify Urgent Bins</div>
+              <div class="step-desc" data-i18n="step3_desc">Bins over 80% (Almost Full) & 90% (High Priority) are immediately flagged for dispatch.</div>
+            </div>
+
+            <div class="step-box">
+              <div class="step-number">4</div>
+              <div class="step-icon"><i class="fa-solid fa-truck-fast"></i></div>
+              <div class="step-title" data-i18n="step4_title">🚛 Send Vehicles</div>
+              <div class="step-desc" data-i18n="step4_desc">Smart compactor trucks are dispatched via optimized GPS route navigation to targeted points.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 Summary Metric Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-title" data-i18n="stat_total_points">Total Points</span>
+              <div class="stat-icon total"><i class="fa-solid fa-dumpster"></i></div>
+            </div>
+            <div class="stat-value" id="stat-total-points">0</div>
+            <div class="stat-subtext"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> <span data-i18n="stat_active_network">Active IoT Network</span></div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-title" data-i18n="stat_requires_coll">Requires Collection</span>
+              <div class="stat-icon required"><i class="fa-solid fa-circle-exclamation"></i></div>
+            </div>
+            <div class="stat-value" id="stat-required-bins" style="color: var(--status-critical);">0</div>
+            <div class="stat-subtext" style="color: var(--status-critical);"><i class="fa-solid fa-arrow-up"></i> <span data-i18n="stat_critical_sub">Critical (&ge; 90% Full)</span></div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-title" data-i18n="stat_almost_full">Almost Full</span>
+              <div class="stat-icon almost"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <div class="stat-value" id="stat-almost-bins" style="color: var(--status-full);">0</div>
+            <div class="stat-subtext" style="color: var(--status-full);"><i class="fa-solid fa-clock"></i> <span data-i18n="stat_warning_sub">Warning (80&ndash;89% Full)</span></div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-title" data-i18n="stat_low_waste">Low Waste</span>
+              <div class="stat-icon low"><i class="fa-solid fa-shield-halved"></i></div>
+            </div>
+            <div class="stat-value" id="stat-low-bins" style="color: var(--status-low);">0</div>
+            <div class="stat-subtext" style="color: var(--status-low);"><i class="fa-solid fa-check"></i> <span data-i18n="stat_normal_sub">Normal (&lt; 50% Full)</span></div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-title" data-i18n="stat_total_collected">Total Collected</span>
+              <div class="stat-icon waste"><i class="fa-solid fa-weight-hanging"></i></div>
+            </div>
+            <div class="stat-value" id="stat-total-collected">18.4 Tons</div>
+            <div class="stat-subtext"><i class="fa-solid fa-leaf" style="color: #10b981;"></i> <span data-i18n="stat_month_tonnage">This Month Tonnage</span></div>
+          </div>
+        </div>
+
+        <!-- Priority List & Quick Alerts Grid -->
+        <div class="dashboard-grid">
+          
+          <!-- High Priority Collection List Table Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-list-check" style="color: var(--status-critical);"></i>
+                High Priority Collection List (&ge; 80% Full)
+              </div>
+              <button class="btn btn-outline btn-sm" id="btn-view-all-points">
+                View All Points <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Location & ID</th>
+                    <th>Area</th>
+                    <th>Fill Level</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="priority-table-body">
+                  <!-- Dynamically rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Urgent Live Alerts Panel -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-bell" style="color: var(--status-full);"></i>
+                System Alerts
+              </div>
+              <button class="btn btn-outline btn-sm" id="btn-view-alerts">
+                All Alerts
+              </button>
+            </div>
+            <div class="card-body" style="padding: 16px;">
+              <div class="alerts-list" id="dashboard-alerts-list">
+                <!-- Dynamically rendered alerts -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= 2. COLLECTION POINTS VIEW ================= -->
+      <section id="points-view" class="view-page">
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-grow: 1;">
+              <div style="position: relative; width: 280px;">
+                <input type="text" id="search-points" class="form-control" placeholder="Search location or ID..." style="padding-left: 36px;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 12px; color: var(--text-muted);"></i>
+              </div>
+              
+              <select id="filter-status" class="form-control" style="width: 200px;">
+                <option value="ALL">All Statuses</option>
+                <option value="CRITICAL">🔴 Collection Required (&ge;90%)</option>
+                <option value="ALMOST">🟠 Almost Full (80-89%)</option>
+                <option value="MEDIUM">🟡 Medium (50-79%)</option>
+                <option value="LOW">🟢 Low (&lt;50%)</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary" id="btn-open-add-modal">
+              <i class="fa-solid fa-plus"></i> Add Collection Point
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Location Name</th>
+                  <th>Location ID</th>
+                  <th>Area</th>
+                  <th>Fill Level %</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Last Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="all-points-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. MAP VIEW ================= -->
+      <section id="map-view" class="view-page">
+        <div class="card" style="margin-bottom: 16px;">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-map-location-dot" style="color: var(--primary);"></i>
+              Live Smart Waste Map — Coimbatore Sector
+            </div>
+            <div class="map-legend">
+              <div class="legend-item"><div class="legend-dot red"></div> Collection Required (&ge;90%)</div>
+              <div class="legend-item"><div class="legend-dot orange"></div> Almost Full (80-89%)</div>
+              <div class="legend-item"><div class="legend-dot yellow"></div> Medium (50-79%)</div>
+              <div class="legend-item"><div class="legend-dot green"></div> Low (&lt;50%)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="map-container-wrap">
+          <div id="map"></div>
+        </div>
+      </section>
+
+      <!-- ================= 4. COLLECTION SCHEDULE VIEW ================= -->
+      <section id="schedule-view" class="view-page">
+        <div class="schedule-grid">
+          
+          <!-- Dispatch Form Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i>
+                Schedule Vehicle Dispatch
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="schedule-form">
+                <div class="form-group">
+                  <label class="form-label">Select Collection Point</label>
+                  <select id="schedule-location" class="form-control" required>
+                    <!-- Options populated dynamically, urgent bins first -->
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Assign Garbage Truck</label>
+                  <select id="schedule-truck" class="form-control" required>
+                    <option value="Truck #101 - EcoCompactor 10T">Truck #101 - EcoCompactor 10T</option>
+                    <option value="Truck #102 - Bio-Waste Express">Truck #102 - Bio-Waste Express</option>
+                    <option value="Truck #103 - Heavy Duty EV-20">Truck #103 - Heavy Duty EV-20</option>
+                    <option value="Truck #104 - Side-Loader Compact">Truck #104 - Side-Loader Compact</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Assign Driver</label>
+                  <select id="schedule-driver" class="form-control" required>
+                    <option value="Rajesh Kumar (Driver ID: D-882)">Rajesh Kumar (ID: D-882)</option>
+                    <option value="Suresh M. (Driver ID: D-410)">Suresh M. (ID: D-410)</option>
+                    <option value="Ramesh K. (Driver ID: D-109)">Ramesh K. (ID: D-109)</option>
+                    <option value="Priya S. (Driver ID: D-335)">Priya S. (ID: D-335)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div>
+                    <label class="form-label">Date</label>
+                    <input type="date" id="schedule-date" class="form-control" required>
+                  </div>
+                  <div>
+                    <label class="form-label">Time</label>
+                    <input type="time" id="schedule-time" class="form-control" required>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                  <i class="fa-solid fa-paper-plane"></i> Confirm Schedule Dispatch
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Schedule History / Active Tasks Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-route" style="color: var(--secondary);"></i>
+                Active & Upcoming Collection Schedules
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>Truck & Driver</th>
+                    <th>Scheduled Time</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="schedule-table-body">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= 5. ANALYTICS VIEW ================= -->
+      <section id="analytics-view" class="view-page">
+        <div class="analytics-grid">
+          
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><i class="fa-solid fa-chart-column" style="color: var(--primary);"></i> Fill Levels by Location (%)</div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chart-fill-levels"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><i class="fa-solid fa-chart-line" style="color: var(--secondary);"></i> Weekly Waste Collection Trend (Tons)</div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chart-weekly-trend"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><i class="fa-solid fa-chart-pie" style="color: var(--status-medium);"></i> Waste Type Distribution</div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chart-waste-type"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><i class="fa-solid fa-donut-chart" style="color: var(--status-critical);"></i> Bin Capacity Status Breakdown</div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chart-status-pie"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= 6. ALERTS VIEW ================= -->
+      <section id="alerts-view" class="view-page">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-triangle-exclamation" style="color: var(--status-critical);"></i>
+              System Alerts & Urgent Warning History
+            </div>
+            <button class="btn btn-outline btn-sm" id="btn-clear-alerts">
+              Clear Read Alerts
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="alerts-list" id="full-alerts-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 7. SETTINGS VIEW ================= -->
+      <section id="settings-view" class="view-page">
+        <div class="card" style="max-width: 700px;">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-gear"></i> System Settings & Configurations</div>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Collection Required Threshold (%)</label>
+              <input type="number" class="form-control" value="90" min="70" max="100">
+              <span style="font-size: 11px; color: var(--text-muted);">Bins at or above this percentage trigger Critical 🔴 status.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Almost Full Threshold (%)</label>
+              <input type="number" class="form-control" value="80" min="50" max="89">
+              <span style="font-size: 11px; color: var(--text-muted);">Bins at or above this percentage trigger Warning 🟠 status.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">IoT Sensor Auto-Refresh Interval</label>
+              <select class="form-control">
+                <option value="5">Every 5 Seconds (Demo Mode)</option>
+                <option value="15">Every 15 Seconds</option>
+                <option value="60">Every 1 Minute</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary" id="btn-reset-demo-data">
+              <i class="fa-solid fa-arrow-rotate-left"></i> Reset Demo Sample Data
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ================= ADD COLLECTION POINT MODAL ================= -->
+<div class="modal-overlay" id="modal-add-point">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Add New Collection Point</h3>
+      <button class="close-modal" id="close-add-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-add-point">
+        <div class="form-group">
+          <label class="form-label">Location Name</label>
+          <input type="text" id="add-name" class="form-control" placeholder="e.g. Gandhipuram Bus Stand" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Area / District Zone</label>
+          <input type="text" id="add-area" class="form-control" placeholder="e.g. Central Zone" required>
+        </div>
+
+        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label class="form-label">Latitude</label>
+            <input type="number" step="0.0001" id="add-lat" class="form-control" value="11.0168" required>
+          </div>
+          <div>
+            <label class="form-label">Longitude</label>
+            <input type="number" step="0.0001" id="add-lng" class="form-control" value="76.9558" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label class="form-label">Initial Fill Level (%)</label>
+            <input type="number" min="0" max="100" id="add-fill" class="form-control" value="45" required>
+          </div>
+          <div>
+            <label class="form-label">Waste Type</label>
+            <select id="add-type" class="form-control">
+              <option value="General Mixed">General Mixed</option>
+              <option value="Organic Bio">Organic Bio</option>
+              <option value="Recyclable Plastics">Recyclable Plastics</option>
+              <option value="E-Waste">E-Waste</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Collection Frequency</label>
+          <select id="add-freq" class="form-control">
+            <option value="Daily">Daily</option>
+            <option value="Twice Daily">Twice Daily</option>
+            <option value="On-Demand (IoT Trigger)">On-Demand (IoT Trigger)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+          <button type="button" class="btn btn-outline" id="btn-cancel-add">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Collection Point</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= QUICK UPDATE FILL LEVEL MODAL ================= -->
+<div class="modal-overlay" id="modal-update-fill">
+  <div class="modal-box" style="max-width: 420px;">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="fa-solid fa-sliders" style="color: var(--secondary);"></i> Update Bin Fill Level</h3>
+      <button class="close-modal" id="close-update-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="update-point-id">
+      <p id="update-point-name" style="font-weight: 700; margin-bottom: 14px; font-size: 15px;"></p>
+      
+      <div class="form-group">
+        <label class="form-label">Fill Percentage: <span id="fill-slider-val" style="font-weight: 800; color: var(--primary);">50%</span></label>
+        <input type="range" id="fill-range-slider" min="0" max="100" class="form-control" style="cursor: pointer;">
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-outline btn-sm" id="btn-set-0" style="flex: 1;">0% (Emptied)</button>
+        <button class="btn btn-outline btn-sm" id="btn-set-85" style="flex: 1;">85% (Almost)</button>
+        <button class="btn btn-outline btn-sm" id="btn-set-95" style="flex: 1; color: var(--status-critical);">95% (Full)</button>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+        <button type="button" class="btn btn-outline" id="btn-cancel-update">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-save-fill-update"><i class="fa-solid fa-floppy-disk"></i> Apply Change</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Main App JavaScript -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
